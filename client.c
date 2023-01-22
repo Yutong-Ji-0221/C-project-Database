@@ -132,11 +132,13 @@ void check_put_input(char *string)
     int lastIndex = strlen(string) - 1;
     if (!strcmp(string, "#"))
     {
+        free(string);
         handle_usage_error(INVALID_INPUT_ERROR);
     }
     else if (strlen(string) > 1 &&
              (string[0] == '#' || string[lastIndex] == '#'))
     {
+        free(string);
         handle_usage_error(INVALID_INPUT_ERROR);
     }
 }
@@ -146,7 +148,7 @@ void handle_put(int fd)
     write(fd, PUT, READ_BUFFER);
     char *columnNames = recieve_from_host(fd);
 
-    char *values = "";
+    char values[READ_BUFFER];
     char *columnName = strtok(columnNames, SEP);
 
     while (columnName != NULL)
@@ -154,13 +156,16 @@ void handle_put(int fd)
         printf("Enter the value for [ %s ] column: ", columnName);
         char *value = get_user_input();
         check_put_input(value);
-        values = my_strcat(values, value);
-        values = my_strcat(values, SEP);
+
+        strcat(values, value);
+        free(value);
+        strcat(values, SEP);
+
         columnName = strtok(NULL, SEP);
     }
 
     write(fd, values, READ_BUFFER);
-    free(values);
+    free(columnNames);
 }
 
 void handle_delete(int fd)
@@ -182,6 +187,8 @@ void handle_delete(int fd)
     {
         printf("%s\n", DELETE_FAIL);
     }
+    free(result);
+    free(keyColumnName);
 }
 
 void handle_operation(char *operation, int fd)
@@ -206,11 +213,13 @@ int main(int argc, char **argv)
 
     int fd = open_listen(argv[1]);
     char *status = recieve_from_host(fd);
-    printf("%s\n", status);
     if (!strcmp(status, HOST_EXCEEDS))
     {
+        free(status);
         return 0;
     }
+
+    free(status);
     private_access_check(fd);
     handle_operation(argv[2], fd);
 
